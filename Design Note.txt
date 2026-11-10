@@ -1,0 +1,94 @@
+Design Note
+Domain
+Retro-Arcade Smart Token & Cabinet Management Network
+The system manages an modern arcade gaming center. Gamers have to maintain their respective token balance that are used to join virtual queues for arcade cabinets. When a gamer  joins a queue a certain amount of tokens are automatically deducted. Arcade cabinets maintain high scores, and players who beat existing records earn reward tickets. The system also tracks queue activity, machine utilization, revenue generated from token spending, and the gamer who currently holds the most high-score crowns.
+2. Roles
+Role	Permissions
+Gamer	View cabinets, join queues, view own profile, play games, submit scores
+Arcade Floor Manager	Create and manage gamers, manage cabinets, manage queues, view stats, change cabinet status
+
+Endpoint Category	Gamer	Manager
+View Cabinets	        ✅	✅
+View Gamer Profile	✅	✅
+Create Cabinet	        ❌	✅
+Update Cabinet	        ❌	✅
+Create Gamer	        ❌	✅
+Join Queue	        ✅	✅
+Change Queue Status	❌	✅
+View Lounge Statistics	❌	✅
+3. Models
+Arcade Cabinet
+Status : operational, in use, maintenance
+Values : ID, Game title, Genre, Tokens per play, High Score, High score holder ID, Status
+GamerProfile
+Tiers : Rookie, Elite
+Values : ID, Name, Token Balance, Tickets won balance, Account tier
+GameSessionQueue(Linking Model)
+Status : Queued, Playing, Completed, Abandoned
+Values : ID, Cabinet ID, Gamer ID, Tokens deducted
+4. Mindmap of Relations
+ GamerProfile
+
+         │
+         │ gamer_id
+         ▼
+
+
+GameSessionQueue 
+
+         ▲
+         │ cabinet_id
+         │
+
+
+ArcadeCabinet
+5. System Rules
+Rule-1: If the gamer doesn't have the required amount of token balance then response is "409 Conflict" with reason "Insuficient balance of tokens".
+Rule-2: A gamer may have only ONE active session else(Prevents queue hoarding).
+Rule-3: The high scores can updated only if the new score is greater than formal high score.
+Rule-4: A cabinet cannot be joined if it's status is under maintenance.
+Rule-5: A queued session can only be moved to playing status if the cabinet is operational
+6. Endpoints
+System
+Method	Path	Role
+GET	/health	Anyone
+Gamers
+POST	/gamers	Manager
+GET	/gamers	Manager
+GET	/gamers/{id}	Gamer, Manager
+PATCH	/gamers/{id}	Manager
+DELETE	/gamers/{id}	Manager
+Cabinets
+POST	/cabinets	Manager
+GET	/cabinets	Anyone
+GET	/cabinets/{id}	Anyone
+PATCH	/cabinets/{id}	Manager
+DELETE	/cabinets/{id}	Manager
+Queue Sessions
+POST	/sessions	Gamer, Manager
+GET	/sessions	Manager
+GET	/sessions/{id}	Manager
+PATCH	/sessions/{id}/status	Manager
+DELETE	/sessions/{id}	Manager
+High Scores
+PATCH	/cabinets/{id}/score	Gamer
+Reports
+GET	/stats	Manager
+7. Stats Endpoint
+Calculations:
+
+	Total token revenue
+	Cabinet utilization percentages
+	Gamer with most active high-score crowns
+8. Checklist (Basic)
+#	Request						Expected
+1	GET /health					200
+2	POST /gamers as manager				201
+3	POST /cabinets as manager			201
+4	GET /cabinets					200
+5	POST /sessions with sufficient tokens		201
+6	POST /sessions without enough tokens		409
+7	POST /sessions when active session exists	409
+8	PATCH /sessions/{id}/status to playing		200
+9	PATCH /cabinets/{id}/score with lower score	409
+10	PATCH /cabinets/{id}/score with higher score	200

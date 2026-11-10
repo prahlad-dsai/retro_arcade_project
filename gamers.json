@@ -1,0 +1,23 @@
+[
+    {
+        "id": 1,
+        "name": "Alex",
+        "token_balance": 50,
+        "tickets_won_balance": 120,
+        "account_tier": "elite"
+    },
+    {
+        "id": 2,
+        "name": "Jordan",
+        "token_balance": 5,
+        "tickets_won_balance": 0,
+        "account_tier": "rookie"
+    },
+    {
+        "id": 3,
+        "name": "Sam",
+        "token_balance": 20,
+        "tickets_won_balance": 45,
+        "account_tier": "rookie"
+    }
+]

@@ -1,0 +1,9 @@
+[
+    {
+        "id": 1,
+        "cabinet_id": 1,
+        "gamer_id": 1,
+        "tokens_deducted": 10,
+        "status": "queued"
+    }
+]

@@ -1,0 +1,29 @@
+[
+    {
+        "id": 1,
+        "game_title": "Pac-Man",
+        "genre": "Maze",
+        "tokens_per_play": 10,
+        "status": "operational",
+        "high_score": 15000,
+        "high_score_holder_id": 1
+    },
+    {
+        "id": 2,
+        "game_title": "Street Fighter II",
+        "genre": "Fighting",
+        "tokens_per_play": 15,
+        "status": "operational",
+        "high_score": 8500,
+        "high_score_holder_id": 3
+    },
+    {
+        "id": 3,
+        "game_title": "Galaga",
+        "genre": "Shooter",
+        "tokens_per_play": 10,
+        "status": "maintenance",
+        "high_score": 20000,
+        "high_score_holder_id": null
+    }
+]
