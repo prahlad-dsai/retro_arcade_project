@@ -1,122 +1,323 @@
-# Retro-Arcade Smart-Token & Cabinet Management Network
+# 🕹️ Retro-Arcade Smart Token & Cabinet Management Network
 
-A high-tech retro arcade lounge API designed to manage player token balances, virtual game session queues, cabinet statuses, high-score tracking, and lounge statistics.
+A REST API built with **FastAPI** that manages a modern retro arcade. Gamers hold a token balance, spend tokens to join virtual queues for arcade cabinets, and earn reward tickets by beating high scores. Floor managers manage gamers, cabinets and queues, and can view lounge-wide statistics.
 
----
-
-## 1. Domain Overview & Roles
-
-### Roles
-* **`gamer`**: Can view arcade cabinets, view their own gamer profile, join session queues, play games, and submit high scores.
-* **`arcadefloormanager`**: Administrative role. Can create and manage gamer profiles, add and modify cabinets, manage queues, change machine operational statuses, and view lounge analytics.
+Data is persisted in simple JSON files, so no database setup is needed.
 
 ---
 
-## 2. Core Models
+## ✨ Features
 
-1. **`GamerProfile`**
-   * `id` (int): Unique identifier.
-   * `name` (str): Gamer name.
-   * `token_balance` (int): Current count of tokens available to spend.
-   * `tickets_won_balance` (int): Reward tickets earned by setting high scores.
-   * `account_tier` (str): Account level (`rookie` or `elite`).
-
-2. **`ArcadeCabinet`**
-   * `id` (int): Unique identifier.
-   * `game_title` (str): Name of the arcade game.
-   * `genre` (str): Game genre.
-   * `tokens_per_play` (int): Tokens required to queue up for a play.
-   * `status` (str): Current machine state (`operational`, `in_use`, `maintenance`).
-   * `high_score` (int): Current lounge high score.
-   * `high_score_holder_id` (int | null): ID of the gamer holding the record.
-
-3. **`GameSessionQueue`** (Linking Model)
-   * `id` (int): Unique identifier.
-   * `cabinet_id` (int): Links to an `ArcadeCabinet`.
-   * `gamer_id` (int): Links to a `GamerProfile`.
-   * `tokens_deducted` (int): Number of tokens deducted upon joining.
-   * `status` (str): Session status (`queued` → `playing` → `completed` / `abandoned`).
+- Gamer profile management (token balance, ticket balance, account tier)
+- Arcade cabinet management (status, tokens per play, high score tracking)
+- Virtual queue sessions with automatic token deduction
+- High-score submission with ticket rewards
+- Role-based access control using a request header
+- Lounge statistics: token revenue, cabinet utilization, and top high-score holder
+- JSON file persistence (`gamers.json`, `cabinets.json`, `sessions.json`)
+- CORS enabled and optional static front-end served from `public/`
 
 ---
 
-## 3. System Rules & Enforcement
+## 🧱 Tech Stack
 
-* **Rule 1 (Token Deduction Interlock):** A gamer cannot join a cabinet queue if their `token_balance` is less than `tokens_per_play`. Tokens are deducted immediately upon joining. *(Returns `409 Conflict`)*
-* **Rule 2 (Anti-Camping Queue Cap):** A gamer can only occupy one active (`queued` or `playing`) session across the lounge at any given time. *(Returns `409 Conflict`)*
-* **Rule 3 (The Crown Protection Rule):** A request to update a high score is rejected unless the submitted score strictly exceeds the current stored high score. On success, it swaps the `high_score_holder_id` and awards a ticket bonus. *(Returns `409 Conflict`)*
-* **Rule 4 (Maintenance Protection):** A gamer cannot join a cabinet's queue if its status is set to `maintenance`. *(Returns `409 Conflict`)*
-* **Rule 5 (Operational Transition Rule):** A session status can only transition to `playing` if the cabinet is currently `operational`. *(Returns `409 Conflict`)*
+| Component  | Technology                  |
+|------------|-----------------------------|
+| Language   | Python 3.10+                |
+| Framework  | FastAPI                     |
+| Validation | Pydantic                    |
+| Server     | Uvicorn                     |
+| Storage    | JSON files                  |
+| Packaging  | [uv](https://docs.astral.sh/uv/) |
 
 ---
 
-## 4. How to Run the Project
+## 📁 Project Structure
 
-### Prerequisites
-* Python 3.10+
-* [uv](https://docs.astral.sh/uv/)
+```
+.
+├── main.py            # FastAPI application (models, rules, endpoints)
+├── gamers.json        # Gamer data store
+├── cabinets.json      # Cabinet data store
+├── sessions.json      # Queue session data store
+├── Design_Note.txt    # Original design specification
+├── public/            # Static front-end (index.html)
+├── pyproject.toml     # uv project configuration
+└── README.md
+```
 
-### Installation & Setup
+---
 
-1. **Clone the repository and enter the folder:**
-   ```bash
-   git clone https://github.com/prahlad-dsai/retro_arcade_project.git
-   cd retro_arcade_project
-   ```
+## 🚀 Getting Started
 
-2. **Install dependencies:**
-   ```bash
-   uv sync
-   ```
+### 1. Clone the repository
 
-3. **Start the server:**
-   ```bash
-   uv run uvicorn main:app --reload
-   ```
+```bash
+git clone <your-repo-url>
+cd <your-repo-folder>
+```
 
-4. **Access Interactive Docs:**
-   Open your browser and visit: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+### 2. Install dependencies
 
-5. **Clean Start / Reset Data:**
-   * Stop the server (`Ctrl+C`).
-   * Restore the starter data:
-     ```bash
-     git restore gamers.json cabinets.json sessions.json
-     ```
-   * Restart the server.
+```bash
+uv sync
+```
 
-## 5. Complete Test Checklist
+If you are setting the project up from scratch:
 
-Run these requests in order from a **clean start**. Pass `X-Role` in the HTTP headers as specified.
+```bash
+uv add fastapi "uvicorn[standard]"
+```
 
-| # | Method & Path | Header `X-Role` | Request Body / Params | Expected Status | Description / Notes |
-|---|---|---|---|---|---|
-| **1** | `GET /health` | None | None | **200 OK** | Server availability check. |
-| **2** | `GET /cabinets` | None | None | **200 OK** | Anyone can browse the arcade catalogue. |
-| **3** | `GET /cabinets/1` | None | None | **200 OK** | Anyone can inspect a specific cabinet. |
-| **4** | `GET /cabinets/99` | None | None | **404 Not Found** | Cabinet ID 99 does not exist. |
-| **5** | `POST /gamers` | None | `{"name":"Racer", "token_balance":30, "tickets_won_balance":0, "account_tier":"rookie"}` | **401 Unauthorized** | Missing `X-Role` header. |
-| **6** | `POST /gamers` | `gamer` | `{"name":"Racer", "token_balance":30, "tickets_won_balance":0, "account_tier":"rookie"}` | **403 Forbidden** | Gamers cannot create profiles. |
-| **7** | `POST /gamers` | `arcadefloormanager` | `{"name":"A", "token_balance":30, "tickets_won_balance":0, "account_tier":"rookie"}` | **422 Unprocessable** | Name too short (min 2 chars). |
-| **8** | `POST /gamers` | `arcadefloormanager` | `{"name":"RacerX", "token_balance":30, "tickets_won_balance":0, "account_tier":"rookie"}` | **201 Created** | Creates Gamer ID 4. |
-| **9** | `POST /gamers` | `arcadefloormanager` | `{"name":"RacerX", "token_balance":50, "tickets_won_balance":0, "account_tier":"rookie"}` | **409 Conflict** | Duplicate gamer name prevented. |
-| **10** | `GET /gamers` | `arcadefloormanager` | None | **200 OK** | Lists all gamers. |
-| **11** | `GET /gamers/1` | `gamer` | None | **200 OK** | Gamer views their profile. |
-| **12** | `PATCH /gamers/1` | `arcadefloormanager` | `{"name":"Alex", "token_balance":100, "tickets_won_balance":120, "account_tier":"elite"}` | **200 OK** | Manager updates token balance. |
-| **13** | `DELETE /gamers/3` | `arcadefloormanager` | None | **204 No Content** | Manager deletes Gamer ID 3. |
-| **14** | `POST /cabinets` | `arcadefloormanager` | `{"game_title":"Donkey Kong", "genre":"Platformer", "tokens_per_play":10, "status":"operational"}` | **201 Created** | Manager adds a new cabinet (ID 4). |
-| **15** | `PATCH /cabinets/1` | `arcadefloormanager` | `{"game_title":"Pac-Man", "genre":"Maze", "tokens_per_play":10, "status":"maintenance"}` | **200 OK** | Changes cabinet status to maintenance. |
-| **16** | `DELETE /cabinets/4` | `arcadefloormanager` | None | **204 No Content** | Deletes cabinet ID 4. |
-| **17** | `POST /sessions` | `gamer` | `{"cabinet_id":1, "gamer_id":2}` | **409 Conflict** | **Rule 4:** Blocked because Cabinet 1 is in maintenance. |
-| **18** | `PATCH /cabinets/1` | `arcadefloormanager` | `{"game_title":"Pac-Man", "genre":"Maze", "tokens_per_play":10, "status":"operational"}` | **200 OK** | Restore Cabinet 1 to operational. |
-| **19** | `POST /sessions` | `gamer` | `{"cabinet_id":1, "gamer_id":2}` | **409 Conflict** | **Rule 1:** Jordan (ID 2) has only 5 tokens (needs 10). |
-| **20** | `POST /sessions` | `gamer` | `{"cabinet_id":1, "gamer_id":1}` | **409 Conflict** | **Rule 2:** Alex (ID 1) already has an active queue session. |
-| **21** | `POST /sessions` | `gamer` | `{"cabinet_id":2, "gamer_id":4}` | **201 Created** | RacerX (ID 4) joins queue; tokens deducted (30 → 15). |
-| **22** | `GET /sessions` | `arcadefloormanager` | None | **200 OK** | Manager views active lounge sessions. |
-| **23** | `GET /sessions/2` | `arcadefloormanager` | None | **200 OK** | Gets specific session details. |
-| **24** | `PATCH /sessions/2/status` | `arcadefloormanager` | `{"status":"playing"}` | **200 OK** | Updates session status from queued to playing. |
-| **25** | `PATCH /cabinets/2/score` | `gamer` | `{"score":5000, "gamer_id":4}` | **409 Conflict** | **Rule 3:** Score 5000 is lower than high score 8500. |
-| **26** | `PATCH /cabinets/2/score` | `gamer` | `{"score":9999, "gamer_id":4}` | **200 OK** | **Rule 3:** Score beats record! High score updated, tickets awarded. |
-| **27** | `PATCH /sessions/2/status` | `arcadefloormanager` | `{"status":"completed"}` | **200 OK** | Session completed. |
-| **28** | `DELETE /sessions/2` | `arcadefloormanager` | None | **204 No Content** | Manager deletes session record. |
-| **29** | `GET /stats` | `arcadefloormanager` | None | **200 OK** | Generates total revenue, utilization %, and crown holder summary. |
-| **30** | Restart Server | N/A | Stop server (`Ctrl+C`), start again, run `GET /cabinets/2` | **200 OK** | **Persistence Check:** Data intact after restart without deleting JSON files. |
+### 3. Run the server
+
+```bash
+uv run uvicorn main:app --reload
+```
+
+The API runs at `http://127.0.0.1:8000`.
+
+- Interactive docs (Swagger UI): `http://127.0.0.1:8000/docs`
+- Alternative docs (ReDoc): `http://127.0.0.1:8000/redoc`
+
+> **Note:** `main.py` mounts the `public/` directory, so make sure it exists (with an `index.html` inside) before starting the server.
+
+---
+
+## 🔐 Authentication & Roles
+
+There is no login. The role is sent in the **`X-Role`** request header.
+
+| Role value           | Description          |
+|----------------------|----------------------|
+| `gamer`              | Regular arcade gamer |
+| `arcadefloormanager` | Arcade floor manager |
+
+- Missing header → `401 Unauthorized`
+- Role not permitted for the endpoint → `403 Forbidden`
+
+Example:
+
+```bash
+curl -H "X-Role: arcadefloormanager" http://127.0.0.1:8000/gamers
+```
+
+### Permission Matrix
+
+| Endpoint Category      | Gamer | Manager |
+|------------------------|:-----:|:-------:|
+| View Cabinets          | ✅    | ✅      |
+| View Gamer Profile     | ✅    | ✅      |
+| Create Cabinet         | ❌    | ✅      |
+| Update Cabinet         | ❌    | ✅      |
+| Create Gamer           | ❌    | ✅      |
+| Join Queue             | ✅    | ✅      |
+| Change Queue Status    | ❌    | ✅      |
+| View Lounge Statistics | ❌    | ✅      |
+
+---
+
+## 🗂️ Data Models
+
+### Arcade Cabinet
+| Field                  | Type        | Notes                                          |
+|------------------------|-------------|------------------------------------------------|
+| `id`                   | int         | Auto-generated                                 |
+| `game_title`           | string      | 2–100 chars, unique (case-insensitive)         |
+| `genre`                | string      | 2–50 chars                                     |
+| `tokens_per_play`      | int         | ≥ 0                                            |
+| `status`               | enum        | `operational`, `in_use`, `maintenance`         |
+| `high_score`           | int         | Starts at 0                                    |
+| `high_score_holder_id` | int \| null | Gamer who holds the high score                 |
+
+### Gamer Profile
+| Field                 | Type   | Notes                          |
+|-----------------------|--------|--------------------------------|
+| `id`                  | int    | Auto-generated                 |
+| `name`                | string | 2–50 chars, unique             |
+| `token_balance`       | int    | ≥ 0                            |
+| `tickets_won_balance` | int    | ≥ 0                            |
+| `account_tier`        | enum   | `rookie`, `elite`              |
+
+### Game Session Queue (linking model)
+| Field             | Type | Notes                                                    |
+|-------------------|------|----------------------------------------------------------|
+| `id`              | int  | Auto-generated                                           |
+| `cabinet_id`      | int  | References a cabinet                                     |
+| `gamer_id`        | int  | References a gamer                                       |
+| `tokens_deducted` | int  | Tokens charged when joining                              |
+| `status`          | enum | `queued`, `playing`, `completed`, `abandoned`            |
+
+### Relationships
+
+```
+GamerProfile ──(gamer_id)──▶ GameSessionQueue ◀──(cabinet_id)── ArcadeCabinet
+```
+
+---
+
+## 📜 Business Rules
+
+| # | Rule | Response |
+|---|------|----------|
+| 1 | A gamer must have enough tokens to join a queue | `409 Conflict` – "Insufficient balance of tokens" |
+| 2 | A gamer may have only **one** active session (`queued` or `playing`), which prevents queue hoarding | `409 Conflict` |
+| 3 | A high score can be updated only if the new score is strictly greater than the current one | `409 Conflict` |
+| 4 | A cabinet under maintenance cannot be joined | `409 Conflict` |
+| 5 | A queued session can move to `playing` only if the cabinet is `operational` | `409 Conflict` |
+
+Beating a high score rewards the gamer with **50 tickets** (`DEFAULT_TICKET_REWARD`).
+
+---
+
+## 🔌 API Endpoints
+
+### System
+| Method | Path      | Role   |
+|--------|-----------|--------|
+| GET    | `/health` | Anyone |
+
+### Gamers
+| Method | Path           | Role            |
+|--------|----------------|-----------------|
+| POST   | `/gamers`      | Manager         |
+| GET    | `/gamers`      | Manager         |
+| GET    | `/gamers/{id}` | Gamer, Manager  |
+| PATCH  | `/gamers/{id}` | Manager         |
+| DELETE | `/gamers/{id}` | Manager         |
+
+### Cabinets
+| Method | Path              | Role    |
+|--------|-------------------|---------|
+| POST   | `/cabinets`       | Manager |
+| GET    | `/cabinets`       | Anyone  |
+| GET    | `/cabinets/{id}`  | Anyone  |
+| PATCH  | `/cabinets/{id}`  | Manager |
+| DELETE | `/cabinets/{id}`  | Manager |
+
+### Queue Sessions
+| Method | Path                    | Role            |
+|--------|-------------------------|-----------------|
+| POST   | `/sessions`             | Gamer, Manager  |
+| GET    | `/sessions`             | Manager         |
+| GET    | `/sessions/{id}`        | Manager         |
+| PATCH  | `/sessions/{id}/status` | Manager         |
+| DELETE | `/sessions/{id}`        | Manager         |
+
+### High Scores
+| Method | Path                     | Role   |
+|--------|--------------------------|--------|
+| PATCH  | `/cabinets/{id}/score`   | Gamer  |
+
+### Reports
+| Method | Path     | Role    |
+|--------|----------|---------|
+| GET    | `/stats` | Manager |
+
+---
+
+## 📊 Stats Endpoint
+
+`GET /stats` (Manager only) returns:
+
+```json
+{
+  "total_token_revenue": 20,
+  "cabinet_utilization_percentage": 0.0,
+  "most_crowns_gamer_id": 1,
+  "active_crowns_count": 1
+}
+```
+
+- **Total token revenue:** sum of `tokens_deducted` across all sessions
+- **Cabinet utilization:** percentage of cabinets with status `in_use`
+- **Most crowns:** the gamer holding the most cabinet high scores
+
+---
+
+## 🧪 Example Requests
+
+**Health check**
+```bash
+curl http://127.0.0.1:8000/health
+```
+
+**Create a gamer (manager)**
+```bash
+curl -X POST http://127.0.0.1:8000/gamers \
+  -H "Content-Type: application/json" \
+  -H "X-Role: arcadefloormanager" \
+  -d '{"name": "Riley", "token_balance": 100, "tickets_won_balance": 0, "account_tier": "rookie"}'
+```
+
+**Create a cabinet (manager)**
+```bash
+curl -X POST http://127.0.0.1:8000/cabinets \
+  -H "Content-Type: application/json" \
+  -H "X-Role: arcadefloormanager" \
+  -d '{"game_title": "Donkey Kong", "genre": "Platformer", "tokens_per_play": 10, "status": "operational"}'
+```
+
+**Join a queue**
+```bash
+curl -X POST http://127.0.0.1:8000/sessions \
+  -H "Content-Type: application/json" \
+  -H "X-Role: gamer" \
+  -d '{"cabinet_id": 1, "gamer_id": 2}'
+```
+
+**Start a session (manager)**
+```bash
+curl -X PATCH http://127.0.0.1:8000/sessions/1/status \
+  -H "Content-Type: application/json" \
+  -H "X-Role: arcadefloormanager" \
+  -d '{"status": "playing"}'
+```
+
+**Submit a high score**
+```bash
+curl -X PATCH http://127.0.0.1:8000/cabinets/1/score \
+  -H "Content-Type: application/json" \
+  -H "X-Role: gamer" \
+  -d '{"score": 16000, "gamer_id": 2}'
+```
+
+---
+
+## ✅ Basic Test Checklist
+
+| #  | Request                                       | Expected |
+|----|-----------------------------------------------|----------|
+| 1  | `GET /health`                                 | 200      |
+| 2  | `POST /gamers` as manager                     | 201      |
+| 3  | `POST /cabinets` as manager                   | 201      |
+| 4  | `GET /cabinets`                               | 200      |
+| 5  | `POST /sessions` with sufficient tokens       | 201      |
+| 6  | `POST /sessions` without enough tokens        | 409      |
+| 7  | `POST /sessions` when an active session exists| 409      |
+| 8  | `PATCH /sessions/{id}/status` to `playing`    | 200      |
+| 9  | `PATCH /cabinets/{id}/score` with lower score | 409      |
+| 10 | `PATCH /cabinets/{id}/score` with higher score| 200      |
+
+---
+
+## 🗃️ Seed Data
+
+The repository includes sample data:
+
+- **Gamers:** Alex (elite), Jordan (rookie), Sam (rookie)
+- **Cabinets:** Pac-Man, Street Fighter II, Galaga
+- **Sessions:** two queued sessions
+
+Delete or edit the JSON files to reset the data.
+
+---
+
+## 📌 Notes
+
+- Data is stored in JSON files, which is fine for learning and demos but not safe for concurrent production use.
+- Roles are header-based and are **not** real authentication.
+
+## 📄 License
+
+This project is for educational purposes.
