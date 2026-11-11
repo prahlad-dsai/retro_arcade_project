@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retro Arcade Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-gray-950 text-white font-mono p-6">
+    <div class="max-w-6xl mx-auto">
+        <header class="flex justify-between items-center mb-8 border-b border-purple-900 pb-4">
+            <div>
+                <h1 class="text-3xl font-bold text-pink-500">🕹️ Retro-Arcade Network</h1>
+                <p class="text-sm text-gray-400">Live Cliend Dashboard</p>
+            </div>
+            <div class="flex items-center gap-4">
+                <label class="text-sm text-gray-300">Active Role:</label>
+                <select id="role-select" class="bg-gray-900 border border-purple-700 text-cyan-400 px-3 py-1 rounded">
+                    <option value="gamer">Gamer</option>
+                    <option value="arcadefloormanager">Arcade Floor Manager</option>
+                </select>
+                <label class="text-sm text-gray-300">Gamer ID:</label>
+                <input type="number" id="gamer-id-input" value="1" class="w-16 bg-gray-900 border border-purple-700 text-cyan-400 px-2 py-1 rounded text-center">
+            </div>
+        </header>
+
+        <section>
+            <h2 class="text-xl font-semibold text-cyan-400 mb-4">Cabinet Status & Queues</h2>
+            <div id="cabinet-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <p class="text-gray-500">Loading arcade cabinets...</p>
+            </div>
+        </section>
+    </div>
+    <script>
+        const API_URL = "http://127.0.0.1:8000";
+        async function fetchCabinets() {
+            try {
+                const response = await fetch('${API_URL}/cabinets');
+                const cabinets = await response.json();
+                renderCabinets(cabinets);
+            } catch (error) {
+                console.error("Failed to fetch cabinets:", error);
+                document.getElementById('cabinet-grid').innerHTML = '<p class="text-red-500">Error connecting to arcade backend</p>';
+            }
+        }
+
+        function renderCabinets(cabinets) {
+            const grid = document.getElementById('cabinet-grid');
+            card.className = "bg-gray-900 border border-purple-800 rounded-lg p-5 shadow-lg flex flex-col justify-between";
+            let statusColor = "bg-green-900 text-green-300";
+            if (cabinet.status === 'in_use') statusColor = "bg-yellow-900 text-yellow-300";
+            if (cabinet.status === 'maintenance') statusColor = "bg-red-900 text-red-300";
+            card.innerHTML = `
+                <div>
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="text-lg font-bold text-cyan-300">${cabinet.game_title}</h3>
+                        <span class="text-xs px-2 py-1 rounded ${statusColor}">${cabinet.status}</span>
+                    </div>
+                    <p class="text-xs text-gray-400 mb-4">Genre: ${cabinet.genre}</p>
+                    <div class="text-sm text-yellow-400 mb-4">🪙 ${cabinet.tokens_per_play} tokens per play</div>
+                    <div class="text-xs text-gray-300 mb-4">🏆 High Score: <span class="text-purple-400 font-bold">${cabinet.high_score}</span></div>
+                </div>
+                <button onclick="joinQueue(${cabinet.id})" class="w-full bg-pink-600 hover:bg-pink-700 text-white py-2 rounded font-bold transition text-sm">
+                    Queue Up 🎟️
+                </button>
+            `;
+            grid.appendChild(card);
+        }
+        async function joinQueue(cabinetId) {
+            const role = document.getElementById('role-select').value;
+            const gamerId = parseInt(document.getElementById('gaemr-id-input').value);
+            try {
+                const response = await fetch('${API_URL}/sessions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Role': role
+                    },
+                    body: JSON.stringify({
+                        cabinet_id: cabinetId,
+                        gamer_id: gamerId
+                    })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    alert('Succesfully joined queue! Session ID: ${data.id}');
+                    fetchCabinets();
+                } else {
+                    alert('Action Blocked: ${data.detail}');
+                }
+            } catch (error) {
+                alert("An unexpected error occured.");
+                console.error(error);
+            }
+        }
+        fetchCabinets();
+    </script>
+</body>
+</html>
