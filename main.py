@@ -3,8 +3,10 @@ import json
 from pydantic import BaseModel, Field
 from typing import Literal, List, Optional
 from fastapi import FastAPI, Header, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 app = FastAPI(title="Retro-Arcade Management Network")
 
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 DEFAULT_TICKET_REWARD = 50
 
 
