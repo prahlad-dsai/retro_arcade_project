@@ -22,7 +22,7 @@
         "game_title": "Galaga",
         "genre": "Shooter",
         "tokens_per_play": 10,
-        "status": "maintenance",
+        "status": "operational",
         "high_score": 20000,
         "high_score_holder_id": null
     }

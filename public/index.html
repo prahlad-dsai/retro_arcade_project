@@ -3,97 +3,428 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Retro Arcade Dashboard</title>
+    <title>Retro Arcade Master Dashboard</title>
+    <!-- Tailwind CSS for styling -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 </head>
 <body class="bg-gray-950 text-white font-mono p-6">
     <div class="max-w-6xl mx-auto">
-        <header class="flex justify-between items-center mb-8 border-b border-purple-900 pb-4">
+        <!-- Header & Role Selector -->
+        <header class="flex flex-col md:flex-row justify-between items-center mb-8 border-b border-purple-900 pb-4 gap-4">
             <div>
                 <h1 class="text-3xl font-bold text-pink-500">🕹️ Retro-Arcade Network</h1>
-                <p class="text-sm text-gray-400">Live Cliend Dashboard</p>
+                <p class="text-sm text-gray-400">Master Control & Client Dashboard</p>
             </div>
-            <div class="flex items-center gap-4">
-                <label class="text-sm text-gray-300">Active Role:</label>
-                <select id="role-select" class="bg-gray-900 border border-purple-700 text-cyan-400 px-3 py-1 rounded">
-                    <option value="gamer">Gamer</option>
-                    <option value="arcadefloormanager">Arcade Floor Manager</option>
-                </select>
-                <label class="text-sm text-gray-300">Gamer ID:</label>
-                <input type="number" id="gamer-id-input" value="1" class="w-16 bg-gray-900 border border-purple-700 text-cyan-400 px-2 py-1 rounded text-center">
+            <div class="flex items-center gap-4 flex-wrap">
+                <div>
+                    <label class="text-xs text-gray-400 block">Active Role:</label>
+                    <select id="role-select" onchange="handleRoleChange()" class="bg-gray-900 border border-purple-700 text-cyan-400 px-3 py-1 rounded">
+                        <option value="gamer">Gamer</option>
+                        <option value="arcadefloormanager">Arcade Floor Manager</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs text-gray-400 block">Gamer ID:</label>
+                    <input type="number" id="gamer-id-input" value="1" class="w-20 bg-gray-900 border border-purple-700 text-cyan-400 px-2 py-1 rounded text-center">
+                </div>
             </div>
         </header>
 
+        <!-- Manager Control Center (Visible only to Floor Manager) -->
+        <div id="manager-panel" class="hidden mb-8 bg-purple-950/40 border border-pink-600 rounded-lg p-5">
+            <h2 class="text-xl font-bold text-pink-400 mb-3">🛠️ Floor Manager Control Center</h2>
+            
+            <!-- Lounge Stats Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="bg-gray-900 p-3 rounded border border-purple-800">
+                    <p class="text-xs text-gray-400">Total Token Revenue</p>
+                    <p id="stat-revenue" class="text-xl font-bold text-yellow-400">0</p>
+                </div>
+                <div class="bg-gray-900 p-3 rounded border border-purple-800">
+                    <p class="text-xs text-gray-400">Cabinet Utilization</p>
+                    <p id="stat-utilization" class="text-xl font-bold text-cyan-400">0%</p>
+                </div>
+                <div class="bg-gray-900 p-3 rounded border border-purple-800">
+                    <p class="text-xs text-gray-400">Top Crown Holder</p>
+                    <p id="stat-crown" class="text-xl font-bold text-purple-400">None</p>
+                </div>
+            </div>
+
+            <!-- Add New Cabinet Form -->
+            <div class="bg-gray-900/80 p-4 rounded border border-purple-900 mb-6">
+                <h3 class="text-sm font-bold text-cyan-300 mb-3">Add New Arcade Cabinet</h3>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                    <input type="text" id="new-title" placeholder="Game Title" class="bg-gray-800 border border-purple-700 px-3 py-1 rounded text-sm text-white">
+                    <input type="text" id="new-genre" placeholder="Genre (e.g. Action)" class="bg-gray-800 border border-purple-700 px-3 py-1 rounded text-sm text-white">
+                    <input type="number" id="new-tokens" placeholder="Tokens per play" value="10" class="bg-gray-800 border border-purple-700 px-3 py-1 rounded text-sm text-white">
+                    <button onclick="createCabinet()" class="bg-pink-600 hover:bg-pink-700 text-white font-bold py-1 px-4 rounded text-sm transition cursor-pointer">
+                        Add Cabinet ➕
+                    </button>
+                </div>
+            </div>
+
+            <!-- Gamer Management Section -->
+            <div class="bg-gray-900/80 p-4 rounded border border-purple-900">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-sm font-bold text-cyan-300">Gamer Accounts & Token Management</h3>
+                    <button onclick="fetchGamers()" class="bg-purple-700 hover:bg-purple-600 text-white px-3 py-1 rounded text-xs font-bold transition cursor-pointer">
+                        Load All Gamers 👥
+                    </button>
+                </div>
+                <div id="gamer-list" class="space-y-2 max-h-48 overflow-y-auto">
+                    <p class="text-xs text-gray-500">Click "Load All Gamers" to view active profiles.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Arcade Floor Section -->
         <section>
-            <h2 class="text-xl font-semibold text-cyan-400 mb-4">Cabinet Status & Queues</h2>
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold text-cyan-400">Cabinet Floor & Live Queues</h2>
+                <button onclick="fetchAllData()" class="bg-gray-900 border border-purple-700 text-purple-300 hover:bg-purple-950 px-3 py-1 rounded text-xs transition cursor-pointer">
+                    🔄 Refresh Floor
+                </button>
+            </div>
             <div id="cabinet-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <p class="text-gray-500">Loading arcade cabinets...</p>
+                <p class="text-gray-500">Loading arcade floor...</p>
             </div>
         </section>
     </div>
+
     <script>
         const API_URL = "http://127.0.0.1:8000";
+
+        function handleRoleChange() {
+            const role = document.getElementById('role-select').value;
+            const managerPanel = document.getElementById('manager-panel');
+            if (role === 'arcadefloormanager') {
+                managerPanel.classList.remove('hidden');
+                fetchStats();
+                fetchGamers();
+            } else {
+                managerPanel.classList.add('hidden');
+            }
+            fetchCabinets();
+        }
+
+        async function fetchAllData() {
+            fetchCabinets();
+            if (document.getElementById('role-select').value === 'arcadefloormanager') {
+                fetchStats();
+                fetchGamers();
+            }
+        }
+
+        async function fetchStats() {
+            const role = document.getElementById('role-select').value;
+            try {
+                const response = await fetch(`${API_URL}/stats`, {
+                    headers: { 'X-Role': role }
+                });
+                if (response.ok) {
+                    const stats = await response.json();
+                    document.getElementById('stat-revenue').innerText = stats.total_token_revenue;
+                    document.getElementById('stat-utilization').innerText = stats.cabinet_utilization_percentage + '%';
+                    document.getElementById('stat-crown').innerText = stats.most_crowns_gamer_id ? `Gamer #${stats.most_crowns_gamer_id} (${stats.active_crowns_count} crowns)` : 'None';
+                }
+            } catch (err) {
+                console.error("Failed to load stats", err);
+            }
+        }
+
         async function fetchCabinets() {
             try {
-                const response = await fetch('${API_URL}/cabinets');
-                const cabinets = await response.json();
-                renderCabinets(cabinets);
+                const response = await fetch(`${API_URL}/cabinets`);
+                const data = await response.json();
+                if (Array.isArray(data)) {
+                    renderCabinets(data);
+                } else {
+                    document.getElementById('cabinet-grid').innerHTML = `<p class="text-red-500">Error: Invalid cabinet data received.</p>`;
+                }
             } catch (error) {
                 console.error("Failed to fetch cabinets:", error);
-                document.getElementById('cabinet-grid').innerHTML = '<p class="text-red-500">Error connecting to arcade backend</p>';
+                document.getElementById('cabinet-grid').innerHTML = '<p class="text-red-500">Error connecting to arcade backend.</p>';
             }
         }
 
         function renderCabinets(cabinets) {
             const grid = document.getElementById('cabinet-grid');
-            card.className = "bg-gray-900 border border-purple-800 rounded-lg p-5 shadow-lg flex flex-col justify-between";
-            let statusColor = "bg-green-900 text-green-300";
-            if (cabinet.status === 'in_use') statusColor = "bg-yellow-900 text-yellow-300";
-            if (cabinet.status === 'maintenance') statusColor = "bg-red-900 text-red-300";
-            card.innerHTML = `
-                <div>
-                    <div class="flex justify-between items-start mb-2">
-                        <h3 class="text-lg font-bold text-cyan-300">${cabinet.game_title}</h3>
-                        <span class="text-xs px-2 py-1 rounded ${statusColor}">${cabinet.status}</span>
-                    </div>
-                    <p class="text-xs text-gray-400 mb-4">Genre: ${cabinet.genre}</p>
-                    <div class="text-sm text-yellow-400 mb-4">🪙 ${cabinet.tokens_per_play} tokens per play</div>
-                    <div class="text-xs text-gray-300 mb-4">🏆 High Score: <span class="text-purple-400 font-bold">${cabinet.high_score}</span></div>
-                </div>
-                <button onclick="joinQueue(${cabinet.id})" class="w-full bg-pink-600 hover:bg-pink-700 text-white py-2 rounded font-bold transition text-sm">
-                    Queue Up 🎟️
-                </button>
-            `;
-            grid.appendChild(card);
-        }
-        async function joinQueue(cabinetId) {
-            const role = document.getElementById('role-select').value;
-            const gamerId = parseInt(document.getElementById('gaemr-id-input').value);
-            try {
-                const response = await fetch('${API_URL}/sessions', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Role': role
-                    },
-                    body: JSON.stringify({
-                        cabinet_id: cabinetId,
-                        gamer_id: gamerId
-                    })
-                });
-                const data = await response.json();
-                if (response.ok) {
-                    alert('Succesfully joined queue! Session ID: ${data.id}');
-                    fetchCabinets();
+            grid.innerHTML = '';
+            const currentRole = document.getElementById('role-select').value;
+
+            cabinets.forEach(cabinet => {
+                const card = document.createElement('div');
+                card.className = "bg-gray-900 border border-purple-800 rounded-lg p-5 shadow-lg flex flex-col justify-between";
+                
+                let statusColor = "bg-green-900 text-green-300";
+                if (cabinet.status === 'in_use') statusColor = "bg-yellow-900 text-yellow-300";
+                if (cabinet.status === 'maintenance') statusColor = "bg-red-900 text-red-300";
+
+                let interactiveHtml = '';
+
+                if (currentRole === 'arcadefloormanager') {
+                    interactiveHtml = `
+                        <div class="mt-4 pt-3 border-t border-purple-900/50 flex flex-col gap-2">
+                            <div class="flex gap-2">
+                                <select id="status-${cabinet.id}" class="bg-gray-800 text-xs text-white px-2 py-1 rounded w-full border border-purple-700">
+                                    <option value="operational" ${cabinet.status === 'operational' ? 'selected' : ''}>Operational</option>
+                                    <option value="in_use" ${cabinet.status === 'in_use' ? 'selected' : ''}>In Use</option>
+                                    <option value="maintenance" ${cabinet.status === 'maintenance' ? 'selected' : ''}>Maintenance</option>
+                                </select>
+                                <button onclick="updateCabinetStatus(${cabinet.id}, '${cabinet.game_title}', '${cabinet.genre}', ${cabinet.tokens_per_play})" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-xs font-bold transition cursor-pointer">
+                                    Update
+                                </button>
+                            </div>
+                            <button onclick="deleteCabinet(${cabinet.id})" class="bg-red-900/60 hover:bg-red-900 text-red-200 py-1 rounded text-xs font-bold transition cursor-pointer">
+                                Delete Cabinet 🗑️
+                            </button>
+                        </div>
+                    `;
                 } else {
-                    alert('Action Blocked: ${data.detail}');
+                    interactiveHtml = `
+                        <div class="mt-4 pt-3 border-t border-purple-900/50 flex flex-col gap-2">
+                            <button onclick="joinQueue(${cabinet.id})" class="w-full bg-pink-600 hover:bg-pink-700 text-white py-2 rounded font-bold transition text-sm cursor-pointer">
+                                Queue Up 🎟️
+                            </button>
+                            <div class="flex gap-2 mt-1">
+                                <input type="number" id="score-${cabinet.id}" placeholder="Score" class="w-2/3 bg-gray-800 border border-purple-800 px-2 py-1 rounded text-xs text-white">
+                                <button onclick="submitScore(${cabinet.id})" class="w-1/3 bg-purple-700 hover:bg-purple-600 text-white py-1 rounded text-xs font-bold transition cursor-pointer">
+                                    Submit Score 🏆
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div>
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="text-lg font-bold text-cyan-300">${cabinet.game_title}</h3>
+                            <span class="text-xs px-2 py-1 rounded ${statusColor}">${cabinet.status}</span>
+                        </div>
+                        <p class="text-xs text-gray-400 mb-4">Genre: ${cabinet.genre}</p>
+                        <div class="text-sm text-yellow-400 mb-2">🪙 ${cabinet.tokens_per_play} tokens / play</div>
+                        <div class="text-xs text-gray-300 mb-2">🏆 High Score: <span class="text-purple-400 font-bold">${cabinet.high_score}</span></div>
+                    </div>
+                    ${interactiveHtml}
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        async function fetchGamers() {
+            const role = document.getElementById('role-select').value;
+            try {
+                const response = await fetch(`${API_URL}/gamers`, {
+                    headers: { 'X-Role': role }
+                });
+                const gamers = await response.json();
+                
+                const gamerListDiv = document.getElementById('gamer-list');
+                gamerListDiv.innerHTML = '';
+
+                if (Array.isArray(gamers) && gamers.length > 0) {
+                    gamers.forEach(gamer => {
+                        const item = document.createElement('div');
+                        item.className = "flex justify-between items-center bg-gray-800 p-2 rounded text-xs border border-purple-900/50";
+                        item.innerHTML = `
+                            <div>
+                                <span class="font-bold text-pink-400">#${gamer.id} ${gamer.username}</span> 
+                                <span class="text-gray-400 ml-2">Tokens: 🪙 <input type="number" id="tokens-${gamer.id}" value="${gamer.token_balance}" class="w-16 bg-gray-900 text-yellow-400 px-1 rounded border border-purple-700 text-center"></span>
+                                <span class="text-gray-400 ml-2">Tickets: 🎟️ <input type="number" id="tickets-${gamer.id}" value="${gamer.reward_tickets}" class="w-16 bg-gray-900 text-cyan-400 px-1 rounded border border-purple-700 text-center"></span>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="updateGamer(${gamer.id}, '${gamer.username}')" class="bg-purple-600 hover:bg-purple-700 text-white px-2 py-1 rounded font-bold transition cursor-pointer">Update</button>
+                                <button onclick="deleteGamer(${gamer.id})" class="bg-red-900/60 hover:bg-red-900 text-red-200 px-2 py-1 rounded font-bold transition cursor-pointer">Delete</button>
+                            </div>
+                        `;
+                        gamerListDiv.appendChild(item);
+                    });
+                } else {
+                    gamerListDiv.innerHTML = `<p class="text-xs text-gray-400">No gamer profiles found.</p>`;
+                }
+            } catch (err) {
+                console.error("Failed to fetch gamers", err);
+            }
+        }
+
+        async function updateGamer(gamerId, username) {
+            const role = document.getElementById('role-select').value;
+            const newTokens = parseInt(document.getElementById(`tokens-${gamerId}`).value);
+            const newTickets = parseInt(document.getElementById(`tickets-${gamerId}`).value);
+
+            try {
+                const response = await fetch(`${API_URL}/gamers/${gamerId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', 'X-Role': role },
+                    body: JSON.stringify({ username: username, token_balance: newTokens, reward_tickets: newTickets })
+                });
+                if (response.ok) {
+                    alert(`Gamer #${gamerId} successfully updated!`);
+                    fetchGamers();
+                } else {
+                    const err = await response.json();
+                    alert(`Failed to update gamer: ${err.detail}`);
                 }
             } catch (error) {
-                alert("An unexpected error occured.");
+                alert("An unexpected error occurred.");
                 console.error(error);
             }
         }
-        fetchCabinets();
+
+        async function deleteGamer(gamerId) {
+            const role = document.getElementById('role-select').value;
+            if (!confirm(`Are you sure you want to delete Gamer #${gamerId}?`)) return;
+
+            try {
+                const response = await fetch(`${API_URL}/gamers/${gamerId}`, {
+                    method: 'DELETE',
+                    headers: { 'X-Role': role }
+                });
+                if (response.ok) {
+                    alert(`Gamer #${gamerId} deleted successfully.`);
+                    fetchGamers();
+                } else {
+                    const err = await response.json();
+                    alert(`Failed to delete gamer: ${err.detail}`);
+                }
+            } catch (error) {
+                alert("An unexpected error occurred.");
+                console.error(error);
+            }
+        }
+
+        async function joinQueue(cabinetId) {
+            const role = document.getElementById('role-select').value;
+            const gamerId = parseInt(document.getElementById('gamer-id-input').value);
+
+            try {
+                const response = await fetch(`${API_URL}/sessions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Role': role },
+                    body: JSON.stringify({ cabinet_id: cabinetId, gamer_id: gamerId })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    alert(`Successfully joined queue! Session ID: ${data.id}`);
+                    fetchAllData();
+                } else {
+                    alert(`Action Blocked: ${data.detail}`);
+                }
+            } catch (error) {
+                alert("An unexpected error occurred.");
+                console.error(error);
+            }
+        }
+
+        async function submitScore(cabinetId) {
+            const role = document.getElementById('role-select').value;
+            const gamerId = parseInt(document.getElementById('gamer-id-input').value);
+            const scoreVal = parseInt(document.getElementById(`score-${cabinetId}`).value);
+
+            if (isNaN(scoreVal)) {
+                alert("Please enter a valid numeric score.");
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/cabinets/${cabinetId}/score`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Role': role },
+                    body: JSON.stringify({ gamer_id: gamerId, score: scoreVal })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    alert(`Score submitted successfully! New High Score: ${data.high_score}`);
+                    fetchAllData();
+                } else {
+                    alert(`Score Rejected: ${data.detail}`);
+                }
+            } catch (error) {
+                alert("An unexpected error occurred.");
+                console.error(error);
+            }
+        }
+
+        async function updateCabinetStatus(cabinetId, gameTitle, genre, tokensPerPlay) {
+            const role = document.getElementById('role-select').value;
+            const newStatus = document.getElementById(`status-${cabinetId}`).value;
+
+            try {
+                const response = await fetch(`${API_URL}/cabinets/${cabinetId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', 'X-Role': role },
+                    body: JSON.stringify({ game_title: gameTitle, genre: genre, tokens_per_play: tokensPerPlay, status: newStatus })
+                });
+                if (response.ok) {
+                    alert(`Cabinet #${cabinetId} updated to '${newStatus}'!`);
+                    fetchAllData();
+                } else {
+                    const err = await response.json();
+                    alert(`Failed to update: ${err.detail}`);
+                }
+            } catch (error) {
+                alert("An unexpected error occurred.");
+                console.error(error);
+            }
+        }
+
+        async function createCabinet() {
+            const role = document.getElementById('role-select').value;
+            const title = document.getElementById('new-title').value;
+            const genre = document.getElementById('new-genre').value;
+            const tokens = parseInt(document.getElementById('new-tokens').value);
+
+            if (!title || !genre || isNaN(tokens)) {
+                alert("Please fill out all cabinet fields correctly.");
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/cabinets`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Role': role },
+                    body: JSON.stringify({ game_title: title, genre: genre, tokens_per_play: tokens, status: 'operational' })
+                });
+                if (response.ok) {
+                    alert("New cabinet successfully added to the arcade floor!");
+                    document.getElementById('new-title').value = '';
+                    document.getElementById('new-genre').value = '';
+                    fetchAllData();
+                } else {
+                    const err = await response.json();
+                    alert(`Failed to create cabinet: ${err.detail}`);
+                }
+            } catch (error) {
+                alert("An unexpected error occurred.");
+                console.error(error);
+            }
+        }
+
+        async function deleteCabinet(cabinetId) {
+            const role = document.getElementById('role-select').value;
+            if (!confirm(`Are you sure you want to delete Cabinet #${cabinetId}?`)) return;
+
+            try {
+                const response = await fetch(`${API_URL}/cabinets/${cabinetId}`, {
+                    method: 'DELETE',
+                    headers: { 'X-Role': role }
+                });
+                if (response.ok) {
+                    alert("Cabinet deleted successfully.");
+                    fetchAllData();
+                } else {
+                    const err = await response.json();
+                    alert(`Failed to delete: ${err.detail}`);
+                }
+            } catch (error) {
+                alert("An unexpected error occurred.");
+                console.error(error);
+            }
+        }
+
+        // Initial load on page start
+        fetchAllData();
     </script>
 </body>
 </html>

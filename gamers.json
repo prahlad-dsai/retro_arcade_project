@@ -9,14 +9,14 @@
     {
         "id": 2,
         "name": "Jordan",
-        "token_balance": 5,
+        "token_balance": 500,
         "tickets_won_balance": 0,
         "account_tier": "rookie"
     },
     {
         "id": 3,
         "name": "Sam",
-        "token_balance": 20,
+        "token_balance": 10,
         "tickets_won_balance": 45,
         "account_tier": "rookie"
     }

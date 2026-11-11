@@ -5,6 +5,7 @@ from typing import Literal, List, Optional
 from fastapi import FastAPI, Header, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 app = FastAPI(title="Retro-Arcade Management Network")
 
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
@@ -81,6 +82,9 @@ def find_cabinet(cabinet_id: int) -> dict:
         if c["id"] == cabinet_id:
             return c
     raise HTTPException(status_code=404, detail=f"Cainet {cabinet_id} not found")
+@app.get("/")
+def read_index():
+    return FileResponse("public/index.html")
 @app.get("/health")
 def health():
     return {"status": "ok"}
