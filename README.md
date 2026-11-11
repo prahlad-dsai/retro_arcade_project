@@ -1,34 +1,45 @@
 # 🕹️ Retro-Arcade Smart Token & Cabinet Management Network
 
-A REST API built with **FastAPI** that manages a modern retro arcade. Gamers hold a token balance, spend tokens to join virtual queues for arcade cabinets, and earn reward tickets by beating high scores. Floor managers manage gamers, cabinets and queues, and can view lounge-wide statistics.
+A full-stack mini project for managing a modern retro arcade. The **FastAPI** backend handles gamers, cabinets, token-based queues, high scores and statistics. A single-page **HTML + Tailwind CSS** dashboard lets gamers and floor managers use the system from the browser.
 
-Data is persisted in simple JSON files, so no database setup is needed.
+Gamers hold a token balance and spend tokens to join virtual queues for arcade cabinets. Beating a cabinet's high score earns reward tickets. Floor managers manage gamers, cabinets and queues, and can view lounge-wide statistics.
+
+Data is stored in simple JSON files, so no database setup is needed.
 
 ---
 
 ## ✨ Features
 
+**Backend (API)**
 - Gamer profile management (token balance, ticket balance, account tier)
 - Arcade cabinet management (status, tokens per play, high score tracking)
 - Virtual queue sessions with automatic token deduction
 - High-score submission with ticket rewards
 - Role-based access control using a request header
-- Lounge statistics: token revenue, cabinet utilization, and top high-score holder
+- Lounge statistics: token revenue, cabinet utilization, top high-score holder
 - JSON file persistence (`gamers.json`, `cabinets.json`, `sessions.json`)
-- CORS enabled and optional static front-end served from `public/`
+- CORS enabled
+
+**Frontend (Dashboard)**
+- Role switcher (Gamer / Arcade Floor Manager) with no login needed
+- Live cabinet floor with status badges, token cost and high scores
+- Gamers can queue up for a cabinet and submit scores
+- Managers get a control center with live lounge stats, an add-cabinet form, cabinet status updates and deletion, and gamer token/ticket management
+- Dark neon "arcade" theme built with Tailwind CSS
 
 ---
 
 ## 🧱 Tech Stack
 
-| Component  | Technology                  |
-|------------|-----------------------------|
-| Language   | Python 3.10+                |
-| Framework  | FastAPI                     |
-| Validation | Pydantic                    |
-| Server     | Uvicorn                     |
-| Storage    | JSON files                  |
-| Packaging  | [uv](https://docs.astral.sh/uv/) |
+| Component  | Technology                                   |
+|------------|----------------------------------------------|
+| Language   | Python 3.10+                                 |
+| Framework  | FastAPI                                      |
+| Validation | Pydantic                                     |
+| Server     | Uvicorn                                      |
+| Storage    | JSON files                                   |
+| Frontend   | HTML, vanilla JavaScript, Tailwind CSS (CDN) |
+| Packaging  | [uv](https://docs.astral.sh/uv/)             |
 
 ---
 
@@ -37,11 +48,12 @@ Data is persisted in simple JSON files, so no database setup is needed.
 ```
 .
 ├── main.py            # FastAPI application (models, rules, endpoints)
+├── public/
+│   └── index.html     # Frontend dashboard (served at "/")
 ├── gamers.json        # Gamer data store
 ├── cabinets.json      # Cabinet data store
 ├── sessions.json      # Queue session data store
 ├── Design_Note.txt    # Original design specification
-├── public/            # Static front-end (index.html)
 ├── pyproject.toml     # uv project configuration
 └── README.md
 ```
@@ -75,18 +87,61 @@ uv add fastapi "uvicorn[standard]"
 uv run uvicorn main:app --reload
 ```
 
-The API runs at `http://127.0.0.1:8000`.
+### 4. Open the app
 
-- Interactive docs (Swagger UI): `http://127.0.0.1:8000/docs`
-- Alternative docs (ReDoc): `http://127.0.0.1:8000/redoc`
+| What                         | URL                              |
+|------------------------------|----------------------------------|
+| Frontend dashboard           | http://127.0.0.1:8000/           |
+| Swagger UI (interactive API) | http://127.0.0.1:8000/docs       |
+| ReDoc                        | http://127.0.0.1:8000/redoc      |
 
-> **Note:** `main.py` mounts the `public/` directory, so make sure it exists (with an `index.html` inside) before starting the server.
+> The dashboard loads Tailwind CSS from a CDN, so you need an internet connection the first time you open it.
+
+---
+
+## 🖥️ Frontend Dashboard
+
+The dashboard is a single file, `public/index.html`. FastAPI serves it at `/`, and it talks to the API with `fetch()`.
+
+### How to use it
+
+1. **Pick a role** from the *Active Role* dropdown at the top. The choice is sent as the `X-Role` header with every request.
+2. **Enter a Gamer ID.** Gamers use this ID when joining queues and submitting scores.
+3. Use the **Cabinet Floor** to interact with the arcade.
+
+### Gamer view
+
+| Action        | What it does                                                                   |
+|---------------|--------------------------------------------------------------------------------|
+| Queue Up 🎟️   | Joins the queue for a cabinet and deducts the cabinet's tokens (`POST /sessions`) |
+| Submit Score 🏆 | Submits a score for a cabinet (`PATCH /cabinets/{id}/score`)                  |
+
+### Floor Manager view
+
+Switching to *Arcade Floor Manager* reveals the **Control Center**:
+
+| Section                      | What it does                                                                       |
+|------------------------------|------------------------------------------------------------------------------------|
+| Lounge stats                 | Shows total token revenue, cabinet utilization and the top crown holder (`GET /stats`) |
+| Add New Arcade Cabinet       | Creates a cabinet with status `operational` (`POST /cabinets`)                     |
+| Cabinet status / delete      | Changes a cabinet's status or removes it (`PATCH` / `DELETE /cabinets/{id}`)       |
+| Gamer Accounts               | Loads all gamers, edits token and ticket balances, deletes gamers (`/gamers`)      |
+
+### Pointing the frontend at a different server
+
+The API address is set at the top of the script in `index.html`:
+
+```js
+const API_URL = "http://127.0.0.1:8000";
+```
+
+Change it if you deploy the backend somewhere else.
 
 ---
 
 ## 🔐 Authentication & Roles
 
-There is no login. The role is sent in the **`X-Role`** request header.
+There is no login. The role is sent in the **`X-Role`** request header (the dashboard sets this for you).
 
 | Role value           | Description          |
 |----------------------|----------------------|
@@ -95,8 +150,6 @@ There is no login. The role is sent in the **`X-Role`** request header.
 
 - Missing header → `401 Unauthorized`
 - Role not permitted for the endpoint → `403 Forbidden`
-
-Example:
 
 ```bash
 curl -H "X-Role: arcadefloormanager" http://127.0.0.1:8000/gamers
@@ -175,6 +228,7 @@ Beating a high score rewards the gamer with **50 tickets** (`DEFAULT_TICKET_REWA
 ### System
 | Method | Path      | Role   |
 |--------|-----------|--------|
+| GET    | `/`       | Anyone (serves the dashboard) |
 | GET    | `/health` | Anyone |
 
 ### Gamers
@@ -309,13 +363,13 @@ The repository includes sample data:
 - **Cabinets:** Pac-Man, Street Fighter II, Galaga
 - **Sessions:** two queued sessions
 
-Delete or edit the JSON files to reset the data.
+Edit or delete the JSON files to reset the data.
 
 ---
 
 ## 📌 Notes
 
-- Data is stored in JSON files, which is fine for learning and demos but not safe for concurrent production use.
+- JSON file storage is fine for learning and demos but is not safe for concurrent production use.
 - Roles are header-based and are **not** real authentication.
 
 ## 📄 License

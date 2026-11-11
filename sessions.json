@@ -12,5 +12,12 @@
         "gamer_id": 3,
         "tokens_deducted": 10,
         "status": "queued"
+    },
+    {
+        "id": 3,
+        "cabinet_id": 2,
+        "gamer_id": 2,
+        "tokens_deducted": 15,
+        "status": "queued"
     }
 ]
