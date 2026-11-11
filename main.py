@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 from typing import Literal, List, Optional
 from fastapi import FastAPI, Header, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 app = FastAPI(title="Retro-Arcade Management Network")
 
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
@@ -272,3 +273,4 @@ def get_lounge_stats(x_role: Optional[str] = Header(None)):
         "most_crowns_gamer_id": top_gamer_id,
         "active_crowns_count": max_crowns
     }
+app.mount("/", StaticFiles(directory="public", html=True), name="public")
